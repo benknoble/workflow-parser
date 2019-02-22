@@ -454,6 +454,18 @@ func TestFlowOnTypeError(t *testing.T) {
 		"workflow `foo' must have an `on' attribute")
 }
 
+func TestFlowRejectsMalformedSchedule(t *testing.T) {
+	workflow, err := parseString(`workflow "foo" { on = "schedule(" resolves = "a" } action "a" { uses="./x" }`)
+	assertParseError(t, err, 1, 1, workflow,
+		"workflow `foo' has an invalid `on' attribute `schedule(' - must be a known event type or schedule expression",
+	)
+}
+
+func TestFlowAcceptsValidSchedule(t *testing.T) {
+	workflow, err := parseString(`workflow "foo" { on = "schedule(@daily)" resolves = "a" } action "a" { uses="./x" }`)
+	assertParseSuccess(t, err, 1, 1, workflow)
+}
+
 func TestFlowOnUnexpectedValue(t *testing.T) {
 	workflow, err := parseString(`
 		workflow "foo" {
@@ -465,7 +477,7 @@ func TestFlowOnUnexpectedValue(t *testing.T) {
 			uses="./x"
 		}`)
 	assertParseError(t, err, 1, 1, workflow,
-		"line 3: workflow `foo' has unknown `on' value `hsup'",
+		"line 3: workflow `foo' has an invalid `on' attribute `hsup' - must be a known event type or schedule expression",
 		"line 5: `on' redefined in workflow `foo'",
 		"line 5: expected string, got number",
 		"line 5: invalid format for `on' in workflow `foo', expected string")

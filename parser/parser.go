@@ -202,8 +202,8 @@ func (p *Parser) checkFlows() {
 		if f.On == "" {
 			p.addError(p.posMap[f], "Workflow `%s' must have an `on' attribute", f.Identifier)
 			// continue, checking other workflows
-		} else if !isAllowedEventType(f.On) {
-			p.addError(p.posMap[&f.On], "Workflow `%s' has unknown `on' value `%s'", f.Identifier, f.On)
+		} else if !isValidOn(f.On) {
+			p.addError(p.posMap[&f.On], "Workflow `%s' has an invalid `on' attribute `%s' - must be a known event type or schedule expression", f.Identifier, f.On)
 			// continue, checking other workflows
 		}
 
