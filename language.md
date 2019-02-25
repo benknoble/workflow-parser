@@ -31,8 +31,9 @@ workflow "this happens when I push" {
   # key is required; "resolves" is optional.
 
   # "on" identifies the event that will cause Actions to run this
-  # workflow.  It's value is a double-quoted string, case-insensitive,
-  # drawn from the list of known event types.
+  # workflow.  It's value is a double-quoted string, case-insensitive.
+  # It is either drawn from the list of known event types, or a schedule
+  # expression of the form "schedule(...)" where ... is an allowable schedule.
   on = "fork"
 
   # "resolves" identifies one or more actions that will be resolved when
@@ -129,7 +130,7 @@ version : 'version' '=' INTEGER;
 
 workflow : 'workflow' str '{' (on_kvp | resolves_kvp)* '}' ;
 
-on_kvp : 'on' '=' event_string ;
+on_kvp : 'on' '=' (event_string | SCHEDULE_STRING);
 
 resolves_kvp : 'resolves' '=' string_or_array ;
 
@@ -160,6 +161,8 @@ ident_array : '[' ((QUOTED_IDENTIFIER ',')* QUOTED_IDENTIFIER ','?)? ']';
 event_string : QUOTED_IDENTIFIER ;
 
 str : QUOTED_IDENTIFIER | STRING;
+
+SCHEDULE_STRING: '"schedule(' SAFECODEPOINT* ')"';
 
 // https://github.com/docker/distribution/blob/b75069ef13a1de846c0cdf964f5917f5b00c1a47/reference/reference.go
 DOCKER_USES: '"docker://' (DOCKER_REGISTRY '/')? DOCKER_PATH_COMPONENT ('/' DOCKER_PATH_COMPONENT)* ( DOCKER_TAG |  DOCKER_DIGEST )? '"';
