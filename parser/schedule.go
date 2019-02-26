@@ -6,7 +6,7 @@ import (
 
 var scheduleRegex = regexp.MustCompile(`\Aschedule\([^)]*\)\z`)
 
-func isSchedule(onString string) bool {
+func IsSchedule(onString string) bool {
 	return scheduleRegex.MatchString(onString)
 }
 
