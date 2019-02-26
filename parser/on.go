@@ -1,7 +1,7 @@
 package parser
 
 func isValidOn(on string) bool {
-	if isSchedule(on) {
+	if IsSchedule(on) {
 		return true
 	} else {
 		return isAllowedEventType(on)
