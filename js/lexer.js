@@ -2,8 +2,11 @@ exports.lex = lex
 
 function countNewlines(str, start, end) {
 	var ret = 0
-	for (var i=start; i<end; i++)
-		if (str.charAt(i) == '\n') ret++
+	var p = start
+	while ((p = str.indexOf('\n', p)) != -1 && p < end) {
+		ret++
+		p++
+	}
 	return ret
 }
 
