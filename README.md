@@ -1,5 +1,7 @@
 [actions]: https://github.com/features/actions/
 [workflow]: https://developer.github.com/actions/creating-workflows/creating-a-new-workflow/
+
+[![Actions Status](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/badge/actions/workflow-parser)](https://wdp9fww0r9.execute-api.us-west-2.amazonaws.com/production/results/actions/workflow-parser)
 # The GitHub Actions Workflow Parser
 
 This is the [language specification](language.md) and the official parser
