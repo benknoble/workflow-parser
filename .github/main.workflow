@@ -4,5 +4,5 @@ workflow "on push" {
 }
 
 action "go-ci" {
-	uses = "cedrickring/golang-action@92b89ca0095ea0972cefaaaf1d48966d7c958553"
+	uses = "cedrickring/golang-action@25af2baab25bb2180c31398c7095b8999e34b15a"
 }
