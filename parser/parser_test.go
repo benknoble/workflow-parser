@@ -817,8 +817,8 @@ func fixture(t *testing.T, filename string) *model.Configuration {
 	levels := []suppressionLevel{
 		{"WARN|ERROR", []OptionFunc{WithSuppressErrors()}},
 		{"WARN", []OptionFunc{WithSuppressWarnings()}},
-		// "none" should be last, so fixture() can return the non-suppressed workflow
-		{"none", nil},
+		// "" should be last, so fixture() can return the non-suppressed workflow
+		{"", nil},
 	}
 
 	str := string(bytes)
