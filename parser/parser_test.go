@@ -26,19 +26,7 @@ func TestSeveritySuppression(t *testing.T) {
 }
 
 func TestActionsAndAttributes(t *testing.T) {
-	workflow, err := parseString(`
-		"action" "a" {
-			"uses"="./x"
-			runs="cmd"
-			env={ PATH="less traveled by", "HOME"="where the heart is" }
-		}
-		action "b" {
-			uses="./y"
-			needs=["a"]
-			args=["foo", "bar"]
-			secrets=[ "THE", "CURRENCY", "OF", "INTIMACY" ]
-		}`)
-	assertParseSuccess(t, err, 2, 0, workflow)
+	workflow := fixture(t, "valid/actions-and-attributes.workflow")
 
 	actionA := workflow.Actions[0]
 	assert.Equal(t, "a", actionA.Identifier)
@@ -56,98 +44,45 @@ func TestActionsAndAttributes(t *testing.T) {
 }
 
 func TestStringEscaping(t *testing.T) {
-	workflow, err := parseString(`
-		action "a" {
-			uses="./x \" y \\ z"
-		}`)
-	assertParseSuccess(t, err, 1, 0, workflow)
+	workflow := fixture(t, "valid/escaping.workflow")
 	assert.Equal(t, `./x " y \ z`, workflow.Actions[0].Uses.String())
 }
 
 func TestFileVersion0(t *testing.T) {
-	workflow, err := parseString(`"version"=0 action "a" { uses="./foo" }`)
-	assertParseSuccess(t, err, 1, 0, workflow)
+	fixture(t, "valid/version-0.workflow")
 }
 
 func TestFileVersion42(t *testing.T) {
-	workflow, err := parseString(`version=42 action "a" { uses="./foo" }`)
-	assertParseError(t, err, 1, 0, workflow, "`version = 42` is not supported")
+	fixture(t, "invalid/version-42.workflow")
 }
 
 func TestFileVersionMustComeFirst(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses="./foo" } version=0`)
-	assertParseError(t, err, 1, 0, workflow, "`version` must be the first declaration")
+	fixture(t, "invalid/version-must-come-first.workflow")
 }
 
 func TestUnscopedVariableNames(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses="./x" runs="${value}" }`)
-	assertParseSuccess(t, err, 1, 0, workflow)
+	workflow := fixture(t, "valid/no-interpolation.workflow")
+	assert.Equal(t, []string{"${value}"}, workflow.Actions[0].Runs.Split())
 }
 
 func TestActionCollision(t *testing.T) {
-	workflow, err := parseString(`
-		action "a" { uses="./x" }
-		action "a" { uses="./x" }`)
-	assertParseError(t, err, 2, 0, workflow, "identifier `a' redefined")
+	fixture(t, "invalid/action-collision.workflow")
 }
 
 func TestBadHCL(t *testing.T) {
-	workflow, err := parseString(`this is definitely not valid HCL!`)
-	assertSyntaxError(t, err, workflow, "illegal char")
-	workflow, err = parseString(`action "foo"`)
-	assertSyntaxError(t, err, workflow, "expected start of object ('{') or assignment ('=')")
-	workflow, err = parseString(`action "foo" {`)
-	assertSyntaxError(t, err, workflow, "object expected closing rbrace got: eof")
-	workflow, err = parseString(`action "foo" { uses=" }`)
-	assertSyntaxError(t, err, workflow, "literal not terminated")
-	workflow, err = parseString(`action "foo" { uses=""" }`)
-	assertSyntaxError(t, err, workflow, "literal not terminated")
+	fixture(t, "invalid/bad-hcl-1.workflow")
+	fixture(t, "invalid/bad-hcl-2.workflow")
+	fixture(t, "invalid/bad-hcl-3.workflow")
+	fixture(t, "invalid/bad-hcl-4.workflow")
+	fixture(t, "invalid/bad-hcl-5.workflow")
 }
 
 func TestCircularDependencySelf(t *testing.T) {
-	workflow, err := parseString(`
-		action "a" {
-			uses="./x"
-			needs=["a"]
-		}`)
-	assertParseError(t, err, 1, 0, workflow, "circular dependency")
+	fixture(t, "invalid/circular-dependency-self.workflow")
 }
 
 func TestCircularDependencyOther(t *testing.T) {
-	workflow, err := parseString(`
-		// simple cycle: a -> b -> a
-		action "a" { uses="./x" needs=["b", "g"] }
-		action "b" { uses="./x" needs=["a", "f"] }
-
-		// three-node cycle with unrelated lead-in: z -> c -> e -> d -> c
-		action "z" { uses="./x" needs="c" }
-		action "c" { uses="./x" needs=["e"] }
-		action "d" { uses="./x" needs="c" }
-		action "e" { uses="./x" needs=["d"] }
-
-		// two-hop cycle overlapping the first one: b -> f -> b
-		action "f" { uses="./x" needs="b" }
-
-		// two-hop cycle overlapping the first one: a -> g -> a
-		action "g" { uses="./x" needs=["a", "i"] }
-
-		// one-hop (self) cycle: h -> h
-		action "h" { uses="./x" needs="h" }
-
-		// cycle that reuses a reported edge: a -> g -> i -> a
-		action "i" { uses="./x" needs="a" }
-	`)
-
-	// Each unique cycle should be reported exactly once, at the first point
-	// (reading top to bottom, left to right) that the cycle is apparent to
-	// the parser.
-	assertParseError(t, err, 10, 0, workflow,
-		"line 4: circular dependency on `a'",
-		"line 9: circular dependency on `c'",
-		"line 13: circular dependency on `b'",
-		"line 16: circular dependency on `a'",
-		"line 19: circular dependency on `h'",
-		"line 22: circular dependency on `a'")
+	fixture(t, "invalid/circular-dependency-others.workflow")
 }
 
 func TestFlowMapping(t *testing.T) {
