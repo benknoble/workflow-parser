@@ -833,6 +833,7 @@ func fixture(t *testing.T, filename string) *model.Configuration {
 			switch a.Result {
 			case "failure":
 				messages := make([]string, 0, len(a.Errors))
+				suppressed := 0
 				for _, pe := range a.Errors {
 					if !strings.Contains(level.ignore, pe.Severity) {
 						if pe.Line > 0 {
@@ -840,7 +841,12 @@ func fixture(t *testing.T, filename string) *model.Configuration {
 						} else {
 							messages = append(messages, pe.Message)
 						}
+					} else {
+						suppressed++
 					}
+				}
+				if suppressed == 0 && level.ignore != "" {
+					continue
 				}
 				t.Log(messages)
 				if len(messages) > 0 {
