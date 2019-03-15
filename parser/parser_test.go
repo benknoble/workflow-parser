@@ -835,7 +835,11 @@ func fixture(t *testing.T, filename string) *model.Configuration {
 				messages := make([]string, 0, len(a.Errors))
 				for _, pe := range a.Errors {
 					if !strings.Contains(level.ignore, pe.Severity) {
-						messages = append(messages, fmt.Sprintf("line %d: %s", pe.Line, pe.Message))
+						if pe.Line > 0 {
+							messages = append(messages, fmt.Sprintf("line %d: %s", pe.Line, pe.Message))
+						} else {
+							messages = append(messages, pe.Message)
+						}
 					}
 				}
 				t.Log(messages)
