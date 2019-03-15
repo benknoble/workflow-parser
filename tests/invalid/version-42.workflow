@@ -1,6 +1,6 @@
 # Invalid file, because version 42 doesn't exist.
 
-"version"=42
+version=42
 action "a" { uses="./foo" }
 
 # ASSERT {
