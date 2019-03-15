@@ -107,21 +107,22 @@ func TestFlowNoResolves(t *testing.T) {
 
 func TestUses(t *testing.T) {
 	workflow, _ := fixture(t, "valid/uses-types.workflow")
-	a := workflow.GetAction("a")
-	if assert.NotNil(t, a) {
-		assert.Equal(t, &model.UsesRepository{Repository: "foo/bar", Ref: "dev"}, a.Uses)
+	cases := []struct {
+		Name string
+		Uses model.Uses
+	}{
+		{Name: "a", Uses: &model.UsesRepository{Repository: "foo/bar", Ref: "dev"}},
+		{Name: "b", Uses: &model.UsesRepository{Repository: "foo/bar", Path: "path", Ref: "1.0.0"}},
+		{Name: "c", Uses: &model.UsesPath{Path: "xyz"}},
+		{Name: "d", Uses: &model.UsesPath{Path: ""}},
+		{Name: "e", Uses: &model.UsesDockerImage{Image: "alpine"}},
 	}
-	b := workflow.GetAction("b")
-	if assert.NotNil(t, b) {
-		assert.Equal(t, &model.UsesRepository{Repository: "foo/bar", Path: "path", Ref: "1.0.0"}, b.Uses)
-	}
-	c := workflow.GetAction("c")
-	if assert.NotNil(t, c) {
-		assert.Equal(t, &model.UsesPath{Path: "xyz"}, c.Uses)
-	}
-	d := workflow.GetAction("d")
-	if assert.NotNil(t, d) {
-		assert.Equal(t, &model.UsesDockerImage{Image: "alpine"}, d.Uses)
+
+	for _, tc := range cases {
+		a := workflow.GetAction(tc.Name)
+		if assert.NotNil(t, a) {
+			assert.Equal(t, tc.Uses, a.Uses)
+		}
 	}
 }
 
@@ -131,31 +132,24 @@ func TestUsesFailures(t *testing.T) {
 
 func TestGetCommand(t *testing.T) {
 	workflow, _ := fixture(t, "valid/command-types.workflow")
-	a := workflow.GetAction("a")
-	if assert.NotNil(t, a) {
-		assert.Equal(t, &model.StringCommand{Value: "a b c d"}, a.Runs)
+	cases := []struct {
+		Name       string
+		Runs, Args model.Command
+	}{
+		{Name: "a", Runs: &model.StringCommand{Value: "a b c d"}},
+		{Name: "b", Runs: &model.ListCommand{Values: []string{"a", "b c", "d"}}},
+		{Name: "c", Args: &model.StringCommand{Value: "a b c d"}},
+		{Name: "d", Args: &model.ListCommand{Values: []string{"a", "b c", "d"}}},
+		{Name: "e", Runs: &model.StringCommand{Value: "a b c d"}, Args: &model.StringCommand{Value: "w x y z"}},
+		{Name: "f", Runs: &model.ListCommand{Values: []string{"a", "b c", "d"}}, Args: &model.ListCommand{Values: []string{"w", "x y", "z"}}},
 	}
-	b := workflow.GetAction("b")
-	if assert.NotNil(t, b) {
-		assert.Equal(t, &model.ListCommand{Values: []string{"a", "b c", "d"}}, b.Runs)
-	}
-	c := workflow.GetAction("c")
-	if assert.NotNil(t, c) {
-		assert.Equal(t, &model.StringCommand{Value: "a b c d"}, c.Args)
-	}
-	d := workflow.GetAction("d")
-	if assert.NotNil(t, d) {
-		assert.Equal(t, &model.ListCommand{Values: []string{"a", "b c", "d"}}, d.Args)
-	}
-	e := workflow.GetAction("e")
-	if assert.NotNil(t, e) {
-		assert.Equal(t, &model.StringCommand{Value: "a b c d"}, e.Runs)
-		assert.Equal(t, &model.StringCommand{Value: "w x y z"}, e.Args)
-	}
-	f := workflow.GetAction("f")
-	if assert.NotNil(t, f) {
-		assert.Equal(t, &model.ListCommand{Values: []string{"a", "b c", "d"}}, f.Runs)
-		assert.Equal(t, &model.ListCommand{Values: []string{"w", "x y", "z"}}, f.Args)
+
+	for _, tc := range cases {
+		a := workflow.GetAction(tc.Name)
+		if assert.NotNil(t, a) {
+			assert.Equal(t, tc.Runs, a.Runs)
+			assert.Equal(t, tc.Args, a.Args)
+		}
 	}
 }
 
