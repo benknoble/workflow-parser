@@ -147,6 +147,7 @@ function parseObject(tokens, ofs) {
 	while (isa(tokens[myofs], "BAREWORD") && eq(tokens[myofs+1], ["OPERATOR", "="]) && isa(tokens[myofs+2], "STRING")) {
 		ret[tokens[myofs][1]] = tokens[myofs+2][1]
 		myofs += 3
+		if (eq(tokens[myofs], ["OPERATOR", ","])) myofs++
 		debugParse("", tokens, [myofs])
 	}
 	if (!eq(tokens[myofs], ["OPERATOR", "}"])) return null
