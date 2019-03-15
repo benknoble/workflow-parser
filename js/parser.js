@@ -50,7 +50,7 @@ function parseVersion(tokens, ofs) {
 function parseBlock(tokens, ofs) {
 	debugParse("Block", tokens, ofs)
 	var node
-	if (node = parseWorkflow(tokens, ofs)) return node
+	if ((node = parseWorkflow(tokens, ofs)) != null) return node
 	return parseAction(tokens, ofs)
 }
 
@@ -93,7 +93,7 @@ function parseKVP(tokens, ofs) {
 	var key = tokens[ofs[0]][1]
 	var childofs = [ ofs[0]+2 ]
 	var val = parseValue(tokens, childofs)
-	if (val) {
+	if (val != null) {
 		ofs[0] = childofs[0]
 		return [ key, val ]
 	}
@@ -107,7 +107,7 @@ function parseValue(tokens, ofs) {
 function parseAny(tokens, ofs, func) {
 	var node
 	for (var i=0; i<func.length; i++) {
-		if (node = func[i](tokens, ofs)) return node
+		if ((node = func[i](tokens, ofs)) != null) return node
 	}
 	return null
 }
@@ -165,7 +165,7 @@ function parseStringOrArray(tokens, ofs) {
 }
 
 function eq(a1, a2) {
-	if (!a1 || !a2) return false
+	if (a1 == null || a2 == null) return false
 	if (a1.length != 3 || a2.length != 2) return false
 	for (var i=0; i<2; i++) {
 		if (a1[i] != a2[i]) return false
