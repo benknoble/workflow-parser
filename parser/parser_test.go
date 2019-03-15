@@ -713,8 +713,10 @@ func assertParseError(t *testing.T, err error, nactions int, nflows int, workflo
 		assert.Equal(t, nactions, len(pe.Actions), "actions")
 		assert.Equal(t, nflows, len(pe.Workflows), "workflows")
 
+		if len(pe.Errors) > 0 {
+			t.Log("Actual errors:  ", pe.Errors)
+		}
 		for _, e := range pe.Errors {
-			t.Log(e)
 			assert.NotEqual(t, 0, e.Pos.Line, "error position not set")
 		}
 		assert.Equal(t, len(errors), len(pe.Errors), "errors")
@@ -791,7 +793,7 @@ func parseAssertions(t *testing.T, str string) []parseExpectation {
 		} else {
 			current += line[1:]
 			if assertEndRegexp.MatchString(line) {
-				t.Log(current)
+				t.Log("JSON:", current)
 				var pe parseExpectation
 				err := json.Unmarshal([]byte(current), &pe)
 				t.Log(pe)
@@ -827,7 +829,7 @@ func fixture(t *testing.T, filename string) *model.Configuration {
 
 	var workflow *model.Configuration
 	for _, level := range levels {
-		t.Logf("suppressing %s", level.ignore)
+		t.Logf("suppressing `%s'", level.ignore)
 		workflow, err = parseString(str, level.args...)
 		for _, a := range assertions {
 			switch a.Result {
@@ -848,7 +850,7 @@ func fixture(t *testing.T, filename string) *model.Configuration {
 				if suppressed == 0 && level.ignore != "" {
 					continue
 				}
-				t.Log(messages)
+				t.Log("Expected errors:", messages)
 				if len(messages) > 0 {
 					assertParseError(t, err, a.NumActions, a.NumWorkflows, workflow, messages...)
 				} else {
