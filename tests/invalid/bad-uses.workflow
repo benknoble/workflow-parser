@@ -5,10 +5,13 @@ action "d" { uses="foo@bar" }
 action "e" { uses={a="b"} }
 action "f" { uses=["x"] }
 action "g" { uses=42 }
+action "h" { }
+action "i" { uses="./x" uses="./x" }
+action "j" { uses="./x" uses="./y" }
 
 # ASSERT {
 #   "result":       "failure",
-#   "numActions":   7,
+#   "numActions":   10,
 #   "numWorkflows": 0,
 #   "errors":[
 #     { "line": 1, "severity": "ERROR", "message": "`uses' value in action `a' cannot be blank" },
@@ -20,6 +23,9 @@ action "g" { uses=42 }
 #     { "line": 6, "severity": "ERROR", "message": "expected string, got list" },
 #     { "line": 6, "severity": "ERROR", "message": "action `f' must have a `uses' attribute" },
 #     { "line": 7, "severity": "ERROR", "message": "expected string, got number" },
-#     { "line": 7, "severity": "ERROR", "message": "action `g' must have a `uses' attribute" }
+#     { "line": 7, "severity": "ERROR", "message": "action `g' must have a `uses' attribute" },
+#     { "line": 8, "severity": "ERROR", "message": "action `h' must have a `uses' attribute" },
+#     { "line": 9, "severity": "ERROR", "message": "`uses' redefined in action `i'" },
+#     { "line": 10, "severity": "ERROR", "message": "`uses' redefined in action `j'" }
 #   ]
 # }

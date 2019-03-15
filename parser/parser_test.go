@@ -20,11 +20,6 @@ func TestParseEmptyConfig(t *testing.T) {
 	assertParseSuccess(t, err, 0, 0, workflow)
 }
 
-func TestSeveritySuppression(t *testing.T) {
-	fixture(t, "invalid/bad-attribute.workflow")
-	fixture(t, "invalid/no-uses.workflow")
-}
-
 func TestActionsAndAttributes(t *testing.T) {
 	workflow, _ := fixture(t, "valid/actions-and-attributes.workflow")
 
@@ -229,184 +224,52 @@ func TestFlowMissingOn(t *testing.T) {
 }
 
 func TestFlowOnUnexpectedValue(t *testing.T) {
-	workflow, err := parseString(`
-		workflow "foo" {
-			on = "hsup"
-			resolves = "a"
-			on = 42
-		}
-		action "a" {
-			uses="./x"
-		}`)
-	assertParseError(t, err, 1, 1, workflow,
-		"line 3: workflow `foo' has unknown `on' value `hsup'",
-		"line 5: `on' redefined in workflow `foo'",
-		"line 5: expected string, got number",
-		"line 5: invalid format for `on' in workflow `foo', expected string")
+	_, err := fixture(t, "invalid/bad-on.workflow")
 	pe := extractParserError(t, err)
 	assert.Equal(t, "hsup", pe.Workflows[0].On)
 }
 
 func TestFlowResolvesTypeError(t *testing.T) {
-	workflow, err := parseString(`workflow "foo" { on = "push" resolves = 42 } action "a" { uses="./x" }`)
-	assertParseError(t, err, 1, 1, workflow,
-		"expected list, got number",
-		"invalid format for `resolves' in workflow `foo', expected list of strings")
+	fixture(t, "invalid/bad-resolves.workflow")
 }
 
 func TestFlowMissingAction(t *testing.T) {
-	workflow, err := parseString(`workflow "foo" { on = "push" resolves = ["a", "b"] } action "a" { uses="./x" }`)
-	assertParseError(t, err, 1, 1, workflow, "workflow `foo' resolves unknown action `b'")
-}
-
-func TestUsesMissingCheck(t *testing.T) {
-	workflow, err := parseString(`action "a" { }`)
-	assertParseError(t, err, 1, 0, workflow, "action `a' must have a `uses' attribute")
-}
-
-func TestUsesAttributeBlankCheck(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses="" }`)
-	assertParseError(t, err, 1, 0, workflow,
-		"`uses' value in action `a' cannot be blank")
-}
-
-func TestUsesDuplicatesCheck(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses="./x" uses="./y" }`)
-	assertParseError(t, err, 1, 0, workflow, "`uses' redefined in action `a'")
-}
-
-func TestCommandDuplicatesCheck(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses="./x" runs="x" runs="y" }`)
-	assertParseError(t, err, 1, 0, workflow, "`runs' redefined in action `a'")
-	if pe, ok := err.(*Error); ok {
-		require.Equal(t, &model.StringCommand{Value: "y"}, pe.Actions[0].Runs)
-	}
-	workflow, err = parseString(`action "a" { uses="./x" args="x" args="y" }`)
-	assertParseError(t, err, 1, 0, workflow, "`args' redefined in action `a'")
-	if pe, ok := err.(*Error); ok {
-		require.Equal(t, &model.StringCommand{Value: "y"}, pe.Actions[0].Args)
-	}
-	workflow, err = parseString(`action "a" { uses="./x" runs="x" runs=17 }`)
-	assertParseError(t, err, 1, 0, workflow,
-		"`runs' redefined in action `a'",
-		"expected string, got number",
-		"the `runs' attribute must be a string or a list")
-	if pe, ok := err.(*Error); ok {
-		require.Equal(t, &model.StringCommand{Value: "x"}, pe.Actions[0].Runs)
-	}
+	fixture(t, "invalid/missing-action.workflow")
 }
 
 func TestFlowKeywordsRedefined(t *testing.T) {
-	workflow, err := parseString(`workflow "a" { on="push" on="push" resolves=["c"] }`)
-	assertParseError(t, err, 0, 1, workflow,
-		"`on' redefined in workflow `a'",
-		"resolves unknown action `c'")
-	workflow, err = parseString(`workflow "a" { on="push" resolves=["b"] resolves=["c"] }`)
-	assertParseError(t, err, 0, 1, workflow,
-		"`resolves' redefined in workflow `a'",
-		"resolves unknown action `c'")
+	fixture(t, "invalid/workflow-keywords-redefined.workflow")
 }
 
 func TestNonExistentExplicitDependency(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses="./x" needs=["b"] }`)
-	assertParseError(t, err, 1, 0, workflow, "action `a' needs nonexistent action `b'")
+	fixture(t, "invalid/bad-dependencies.workflow")
 }
 
-func TestBadDependenciesList(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses="./x" needs=42 }`)
-	assertParseError(t, err, 1, 0, workflow, "expected list, got number")
-}
-
-func TestActionExtraKeywords(t *testing.T) {
-	workflow, err := parseString(`action "a" "b" { }`)
-	assertParseError(t, err, 0, 0, workflow, "invalid toplevel declaration")
-}
-
-func TestInvalidKeyword(t *testing.T) {
-	workflow, err := parseString(`hello "a" { }`)
-	assertParseError(t, err, 0, 0, workflow, "invalid toplevel keyword")
-}
-
-func TestInvalidActionIdentifier(t *testing.T) {
-	workflow, err := parseString(`action "" { }`)
-	assertParseError(t, err, 0, 0, workflow, "invalid format for identifier")
-}
-
-func TestInvalidAttribute(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses { } }`)
-	assertParseError(t, err, 1, 0, workflow,
-		"each attribute of action `a' must be an assignment",
-		"expected string, got object",
-		"action `a' must have a `uses' attribute")
-}
-
-func TestContinueAfterBadAssignment(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses { } } action "b" { uses="./foo" }`)
-	assertParseError(t, err, 2, 0, workflow,
-		"each attribute of action `a' must be an assignment",
-		"expected string, got object",
-		"action `a' must have a `uses' attribute")
-	require.Nil(t, workflow)
+func TestHCLSubset(t *testing.T) {
+	_, err := fixture(t, "invalid/hcl-subset.workflow")
 	pe := extractParserError(t, err)
 	require.Equal(t, 2, len(pe.Actions))
-	assert.Equal(t, "a", pe.Actions[0].Identifier)
-	assert.Equal(t, "b", pe.Actions[1].Identifier)
+	assert.Equal(t, "b", pe.Actions[0].Identifier)
+	assert.Equal(t, "c", pe.Actions[1].Identifier)
+	assert.Equal(t, "./foo", pe.Actions[1].Uses.String())
+}
+
+func TestSecrets(t *testing.T) {
+	workflow, _ := fixture(t, "valid/secrets.workflow")
+	assert.Equal(t, 5, len(workflow.Actions[0].Secrets))
+	assert.Equal(t, 8, len(workflow.Actions[1].Secrets))
 }
 
 func TestTooManySecrets(t *testing.T) {
-	workflow, err := parseString(`
-		action "a" { uses="./a" secrets=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"] }
-	`)
-	assertParseSuccess(t, err, 1, 0, workflow)
-	require.NotNil(t, workflow)
-	assert.Equal(t, 10, len(workflow.Actions[0].Secrets))
-
-	workflow, err = parseString(`
-		action "a" { uses="./a" secrets=["A", "B", "C", "D", "E"] }
-		action "b" { uses="./b" secrets=["D", "E", "F", "G", "H", "I", "J"] }
-	`)
-	assertParseSuccess(t, err, 2, 0, workflow)
-	require.NotNil(t, workflow)
-	assert.Equal(t, 5, len(workflow.Actions[0].Secrets))
-	assert.Equal(t, 7, len(workflow.Actions[1].Secrets))
-
-	workflow, err = parseString(`
-		action "a" { uses="./a" secrets=["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17", "S18", "S19", "S20", "S21", "S22", "S23", "S24", "S25", "S26", "S27", "S28", "S29", "S30", "S31", "S32", "S33", "S34", "S35", "S36", "S37", "S38", "S39", "S40"] }
-		action "b" { uses="./b" secrets=["S35", "S36", "S37", "S38", "S39", "S40", "S41", "S42", "S43", "S44", "S45", "S46", "S47", "S48", "S49", "S50", "S51", "S52", "S53", "S54", "S55", "S56", "S57", "S58", "S59", "S60", "S61", "S62", "S63", "S64", "S65", "S66", "S67", "S68", "S69", "S70", "S71", "S72", "S73", "S74", "S75", "S76", "S77", "S78", "S79", "S80", "S81", "S82", "S83", "S84", "S85", "S86", "S87", "S88", "S89", "S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99", "S100", "S101"] }
-		action "c" { uses="./b" secrets=["S90", "S91", "S92", "S93", "S94", "S95", "S96", "S97", "S98", "S99", "S100", "S101", "S102", "S103", "S104", "S105", "S106", "S107", "S108", "S109", "S110"] }
-	`)
-	assertParseError(t, err, 3, 0, workflow, "all actions combined must not have more than 100 unique secrets")
+	fixture(t, "invalid/too-many-secrets.workflow")
 }
 
 func TestUnknownAttributes(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses="./a" foo="1" } workflow "b" { on="push" bar="2" }`)
-	assertParseError(t, err, 1, 1, workflow,
-		"unknown action attribute `foo'",
-		"unknown workflow attribute `bar'")
+	fixture(t, "invalid/bad-attributes.workflow")
 }
 
 func TestReservedVariables(t *testing.T) {
-	workflow, err := parseString(`
-		action "a" {
-			uses="./a"
-			env={
-				GITHUB_FOO="nope"
-				GITHUB_TOKEN="yup"
-			}
-		}
-		action "b" {
-			uses="./b"
-			secrets = [
-				"GITHUB_BAR",
-				"GITHUB_TOKEN"
-			]
-		}
-	`)
-	assertParseError(t, err, 2, 0, workflow,
-		// the `env=` line in `a`
-		"line 4: environment variables and secrets beginning with `github_' are reserved",
-		// the `secrets=` line in `b`
-		"line 11: environment variables and secrets beginning with `github_' are reserved")
+	_, err := fixture(t, "invalid/reserved-variables.workflow")
 	pe := extractParserError(t, err)
 	assert.Equal(t, "nope", pe.Actions[0].Env["GITHUB_FOO"])
 	assert.Equal(t, "yup", pe.Actions[0].Env["GITHUB_TOKEN"])
@@ -456,21 +319,13 @@ func TestUsesForm(t *testing.T) {
 }
 
 func TestMultilineErrors(t *testing.T) {
-	_, err := parseString(`
-		workflow "a" {
-			on = 17        # three errors
-			resolves = "b"
-		}
-		action "b" {
-			uses="c"       # one error
-		}
-	`)
+	_, err := fixture(t, "invalid/bad-on.workflow")
 	require.Error(t, err)
 	expect := "unable to parse and validate\n" +
-		"  Line 2: Workflow `a' must have an `on' attribute\n" +
-		"  Line 3: Expected string, got number\n" +
-		"  Line 3: Invalid format for `on' in workflow `a', expected string\n" +
-		"  Line 7: The `uses' attribute must be a path, a Docker image, or owner/repo@ref"
+		"  Line 2: Workflow `foo' has unknown `on' value `hsup'\n" +
+		"  Line 4: `on' redefined in workflow `foo'\n" +
+		"  Line 4: Expected string, got number\n" +
+		"  Line 4: Invalid format for `on' in workflow `foo', expected string"
 	assert.Equal(t, expect, err.Error())
 
 	require.IsType(t, &Error{}, err)
