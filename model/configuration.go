@@ -1,8 +1,11 @@
 package model
 
+import (
+	"strings"
+)
+
 // Configuration is a parsed main.workflow file
 type Configuration struct {
-	Version   int
 	Actions   []*Action
 	Workflows []*Workflow
 }
@@ -10,24 +13,11 @@ type Configuration struct {
 // Action represents a single "action" stanza in a .workflow file.
 type Action struct {
 	Identifier string
-	Uses       ActionUses
-	Runs, Args ActionCommand
+	Uses       Uses
+	Runs, Args Command
 	Needs      []string
 	Env        map[string]string
 	Secrets    []string
-}
-
-// ActionCommand represents the optional "runs" and "args" attributes.
-// Each one takes one of two forms:
-//   - runs="entrypoint arg1 arg2 ..."
-//   - runs=[ "entrypoint", "arg1", "arg2", ... ]
-// If the user uses the string form, "Raw" contains that value, and
-// "Parsed" contains an array of the string value split at whitespace.
-// If the user uses the array form, "Raw" is empty, and "Parsed" contains
-// the array.
-type ActionCommand struct {
-	Raw    string
-	Parsed []string
 }
 
 // Workflow represents a single "workflow" stanza in a .workflow file.
@@ -66,7 +56,7 @@ func (c *Configuration) GetWorkflow(id string) *Workflow {
 func (c *Configuration) GetWorkflows(eventType string) []*Workflow {
 	var ret []*Workflow
 	for _, workflow := range c.Workflows {
-		if IsMatchingEventType(workflow.On, eventType) {
+		if strings.EqualFold(workflow.On, eventType) {
 			ret = append(ret, workflow)
 		}
 	}

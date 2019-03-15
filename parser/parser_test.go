@@ -48,24 +48,19 @@ func TestActionsAndAttributes(t *testing.T) {
 			secrets=[ "THE", "CURRENCY", "OF", "INTIMACY" ]
 		}`)
 	assertParseSuccess(t, err, 2, 0, workflow)
-	assert.Equal(t, 0, workflow.Version)
 
 	actionA := workflow.Actions[0]
 	assert.Equal(t, "a", actionA.Identifier)
 	assert.Equal(t, 0, len(actionA.Needs))
-	assert.Equal(t, model.ActionUses{Path: "./x", Raw: "./x"}, actionA.Uses)
-	assert.Equal(t, "cmd", actionA.Runs.Raw)
-	assert.Equal(t, []string{"cmd"}, actionA.Runs.Parsed)
-	assert.Equal(t, "", actionA.Args.Raw)
+	assert.Equal(t, &model.UsesPath{Path: "x"}, actionA.Uses)
+	assert.Equal(t, &model.StringCommand{Value: "cmd"}, actionA.Runs)
 	assert.Equal(t, map[string]string{"PATH": "less traveled by", "HOME": "where the heart is"}, actionA.Env)
 
 	actionB := workflow.Actions[1]
 	assert.Equal(t, "b", actionB.Identifier)
-	assert.Equal(t, model.ActionUses{Path: "./y", Raw: "./y"}, actionB.Uses)
+	assert.Equal(t, &model.UsesPath{Path: "y"}, actionB.Uses)
 	assert.Equal(t, []string{"a"}, actionB.Needs)
-	assert.Equal(t, "", actionB.Runs.Raw)
-	assert.Equal(t, "", actionB.Args.Raw)
-	assert.Equal(t, []string{"foo", "bar"}, actionB.Args.Parsed)
+	assert.Equal(t, &model.ListCommand{Values: []string{"foo", "bar"}}, actionB.Args)
 	assert.Equal(t, []string{"THE", "CURRENCY", "OF", "INTIMACY"}, actionB.Secrets)
 }
 
@@ -75,13 +70,12 @@ func TestStringEscaping(t *testing.T) {
 			uses="./x \" y \\ z"
 		}`)
 	assertParseSuccess(t, err, 1, 0, workflow)
-	assert.Equal(t, `./x " y \ z`, workflow.Actions[0].Uses.Raw)
+	assert.Equal(t, `./x " y \ z`, workflow.Actions[0].Uses.String())
 }
 
 func TestFileVersion0(t *testing.T) {
 	workflow, err := parseString(`"version"=0 action "a" { uses="./foo" }`)
 	assertParseSuccess(t, err, 1, 0, workflow)
-	assert.Equal(t, 0, workflow.Version)
 }
 
 func TestFileVersion42(t *testing.T) {
@@ -168,7 +162,6 @@ func TestCircularDependencyOther(t *testing.T) {
 func TestFlowMapping(t *testing.T) {
 	workflow, err := parseString(`"workflow" "foo" { "on" = "push" resolves = ["a", "b"] } action "a" { uses="./x" } action "b" { uses="./y" }`)
 	assertParseSuccess(t, err, 2, 1, workflow)
-	assert.Equal(t, 0, workflow.Version)
 	assert.Equal(t, "push", workflow.Workflows[0].On)
 	assert.ElementsMatch(t, []string{"a", "b"}, workflow.Workflows[0].Resolves)
 }
@@ -176,7 +169,6 @@ func TestFlowMapping(t *testing.T) {
 func TestFlowOneResolve(t *testing.T) {
 	workflow, err := parseString(`workflow "foo" { on = "push" resolves = "a" } action "a" { uses="./x" }`)
 	assertParseSuccess(t, err, 1, 1, workflow)
-	assert.Equal(t, 0, workflow.Version)
 	assert.Equal(t, "push", workflow.Workflows[0].On)
 	assert.Len(t, workflow.Workflows[0].Resolves[0], 1)
 	assert.Equal(t, "a", workflow.Workflows[0].Resolves[0])
@@ -185,7 +177,6 @@ func TestFlowOneResolve(t *testing.T) {
 func TestFlowNoResolves(t *testing.T) {
 	workflow, err := parseString(`workflow "foo" { on = "push"}`)
 	assertParseSuccess(t, err, 0, 1, workflow)
-	assert.Equal(t, 0, workflow.Version)
 	assert.Equal(t, "push", workflow.Workflows[0].On)
 	assert.Len(t, workflow.Workflows[0].Resolves, 0)
 	assert.Empty(t, workflow.Workflows[0].Resolves)
@@ -201,29 +192,35 @@ func TestUses(t *testing.T) {
 	assertParseSuccess(t, err, 4, 0, workflow)
 	a := workflow.GetAction("a")
 	if assert.NotNil(t, a) {
-		assert.Equal(t, model.ActionUses{Repo: "foo/bar", Path: "/", Ref: "dev", Raw: "foo/bar@dev"}, a.Uses)
+		assert.Equal(t, &model.UsesRepository{Repository: "foo/bar", Ref: "dev"}, a.Uses)
 	}
 	b := workflow.GetAction("b")
 	if assert.NotNil(t, b) {
-		assert.Equal(t, model.ActionUses{Repo: "foo/bar", Path: "/path", Ref: "1.0.0", Raw: "foo/bar/path@1.0.0"}, b.Uses)
+		assert.Equal(t, &model.UsesRepository{Repository: "foo/bar", Path: "path", Ref: "1.0.0"}, b.Uses)
 	}
 	c := workflow.GetAction("c")
 	if assert.NotNil(t, c) {
-		assert.Equal(t, model.ActionUses{Path: "./xyz", Raw: "./xyz"}, c.Uses)
+		assert.Equal(t, &model.UsesPath{Path: "xyz"}, c.Uses)
 	}
 	d := workflow.GetAction("d")
 	if assert.NotNil(t, d) {
-		assert.Equal(t, model.ActionUses{Image: "alpine", Raw: "docker://alpine"}, d.Uses)
+		assert.Equal(t, &model.UsesDockerImage{Image: "alpine"}, d.Uses)
 	}
 }
 
 func TestUsesFailures(t *testing.T) {
-	workflow, err := parseString(`action "a" { uses="foo" }`)
-	assertParseError(t, err, 1, 0, workflow, "the `uses' attribute must be a path, a docker image, or owner/repo@ref")
+	workflow, err := parseString(`action "a" { uses="" }`)
+	assertParseError(t, err, 1, 0, workflow,
+		"`uses' value in action `a' cannot be blank")
+	workflow, err = parseString(`action "a" { uses="foo" }`)
+	assertParseError(t, err, 1, 0, workflow,
+		"the `uses' attribute must be a path, a docker image, or owner/repo@ref")
 	workflow, err = parseString(`action "a" { uses="foo/bar" }`)
-	assertParseError(t, err, 1, 0, workflow, "the `uses' attribute must be a path, a docker image, or owner/repo@ref")
+	assertParseError(t, err, 1, 0, workflow,
+		"the `uses' attribute must be a path, a docker image, or owner/repo@ref")
 	workflow, err = parseString(`action "a" { uses="foo@bar" }`)
-	assertParseError(t, err, 1, 0, workflow, "the `uses' attribute must be a path, a docker image, or owner/repo@ref")
+	assertParseError(t, err, 1, 0, workflow,
+		"the `uses' attribute must be a path, a docker image, or owner/repo@ref")
 	workflow, err = parseString(`action "a" { uses={a="b"} }`)
 	assertParseError(t, err, 1, 0, workflow,
 		"expected string, got object",
@@ -240,34 +237,34 @@ func TestUsesFailures(t *testing.T) {
 
 func TestGetCommand(t *testing.T) {
 	workflow, err := parseString(`
-		action "a" { uses="./x" runs="a b c" }
-		action "b" { uses="./x" runs=["a", "b", "c"] }
-		action "c" { uses="./x" args="a b c" }
-		action "d" { uses="./x" args=["a", "b", "c"] }
-		action "e" { uses="./x" runs="a b c" args="x y z" }
-		action "f" { uses="./x" runs=["a", "b", "c"] args=["x", "y", "z"] }
+		action "a" { uses="./x" runs="a b c d" }
+		action "b" { uses="./x" runs=["a", "b c", "d"] }
+		action "c" { uses="./x" args="a b c d" }
+		action "d" { uses="./x" args=["a", "b c", "d"] }
+		action "e" { uses="./x" runs="a b c d" args="w x y z" }
+		action "f" { uses="./x" runs=["a", "b c", "d"] args=["w", "x y", "z"] }
 	`)
 	assertParseSuccess(t, err, 6, 0, workflow)
 	a := workflow.GetAction("a")
 	assert.NotNil(t, a)
-	assert.Equal(t, model.ActionCommand{Parsed: []string{"a", "b", "c"}, Raw: "a b c"}, a.Runs)
+	assert.Equal(t, &model.StringCommand{Value: "a b c d"}, a.Runs)
 	b := workflow.GetAction("b")
 	assert.NotNil(t, b)
-	assert.Equal(t, model.ActionCommand{Parsed: []string{"a", "b", "c"}}, b.Runs)
+	assert.Equal(t, &model.ListCommand{Values: []string{"a", "b c", "d"}}, b.Runs)
 	c := workflow.GetAction("c")
 	assert.NotNil(t, c)
-	assert.Equal(t, model.ActionCommand{Parsed: []string{"a", "b", "c"}, Raw: "a b c"}, c.Args)
+	assert.Equal(t, &model.StringCommand{Value: "a b c d"}, c.Args)
 	d := workflow.GetAction("d")
 	assert.NotNil(t, d)
-	assert.Equal(t, model.ActionCommand{Parsed: []string{"a", "b", "c"}}, d.Args)
+	assert.Equal(t, &model.ListCommand{Values: []string{"a", "b c", "d"}}, d.Args)
 	e := workflow.GetAction("e")
 	assert.NotNil(t, e)
-	assert.Equal(t, model.ActionCommand{Parsed: []string{"a", "b", "c"}, Raw: "a b c"}, e.Runs)
-	assert.Equal(t, model.ActionCommand{Parsed: []string{"x", "y", "z"}, Raw: "x y z"}, e.Args)
+	assert.Equal(t, &model.StringCommand{Value: "a b c d"}, e.Runs)
+	assert.Equal(t, &model.StringCommand{Value: "w x y z"}, e.Args)
 	f := workflow.GetAction("f")
 	assert.NotNil(t, f)
-	assert.Equal(t, model.ActionCommand{Parsed: []string{"a", "b", "c"}}, f.Runs)
-	assert.Equal(t, model.ActionCommand{Parsed: []string{"x", "y", "z"}}, f.Args)
+	assert.Equal(t, &model.ListCommand{Values: []string{"a", "b c", "d"}}, f.Runs)
+	assert.Equal(t, &model.ListCommand{Values: []string{"w", "x y", "z"}}, f.Args)
 }
 
 func TestGetCommandFailure(t *testing.T) {
@@ -367,7 +364,7 @@ func TestUsesCustomActionsTransformed(t *testing.T) {
 	assertParseSuccess(t, err, 1, 0, workflow)
 	action := workflow.GetAction("a")
 	require.NotNil(t, action)
-	assert.Equal(t, "./foo", action.Uses.Path)
+	require.Equal(t, &model.UsesPath{Path: "foo"}, action.Uses)
 }
 
 func TestUsesCustomActionsShortPath(t *testing.T) {
@@ -375,13 +372,12 @@ func TestUsesCustomActionsShortPath(t *testing.T) {
 	assertParseSuccess(t, err, 1, 0, workflow)
 	action := workflow.GetAction("a")
 	require.NotNil(t, action)
-	assert.Equal(t, "./", action.Uses.Path)
+	require.Equal(t, &model.UsesPath{}, action.Uses)
 }
 
 func TestTwoFlows(t *testing.T) {
 	workflow, err := parseString(`workflow "foo" { on = "push" resolves = "a" } workflow "bar" { on = "push" resolves = "a" } action "a" { uses="./x" }`)
 	assertParseSuccess(t, err, 1, 2, workflow)
-	assert.Equal(t, 0, workflow.Version)
 	assert.Equal(t, "push", workflow.Workflows[0].On)
 	assert.Len(t, workflow.Workflows[0].Resolves[0], 1)
 	assert.Equal(t, "a", workflow.Workflows[0].Resolves[0])
@@ -497,8 +493,7 @@ func TestUsesMissingCheck(t *testing.T) {
 func TestUsesAttributeBlankCheck(t *testing.T) {
 	workflow, err := parseString(`action "a" { uses="" }`)
 	assertParseError(t, err, 1, 0, workflow,
-		"`uses' value in action `a' cannot be blank",
-		"action `a' must have a `uses' attribute")
+		"`uses' value in action `a' cannot be blank")
 }
 
 func TestUsesDuplicatesCheck(t *testing.T) {
@@ -509,8 +504,22 @@ func TestUsesDuplicatesCheck(t *testing.T) {
 func TestCommandDuplicatesCheck(t *testing.T) {
 	workflow, err := parseString(`action "a" { uses="./x" runs="x" runs="y" }`)
 	assertParseError(t, err, 1, 0, workflow, "`runs' redefined in action `a'")
+	if pe, ok := err.(*Error); ok {
+		require.Equal(t, &model.StringCommand{Value: "y"}, pe.Actions[0].Runs)
+	}
 	workflow, err = parseString(`action "a" { uses="./x" args="x" args="y" }`)
 	assertParseError(t, err, 1, 0, workflow, "`args' redefined in action `a'")
+	if pe, ok := err.(*Error); ok {
+		require.Equal(t, &model.StringCommand{Value: "y"}, pe.Actions[0].Args)
+	}
+	workflow, err = parseString(`action "a" { uses="./x" runs="x" runs=17 }`)
+	assertParseError(t, err, 1, 0, workflow,
+		"`runs' redefined in action `a'",
+		"expected string, got number",
+		"the `runs' attribute must be a string or a list")
+	if pe, ok := err.(*Error); ok {
+		require.Equal(t, &model.StringCommand{Value: "x"}, pe.Actions[0].Runs)
+	}
 }
 
 func TestFlowKeywordsRedefined(t *testing.T) {
@@ -632,39 +641,67 @@ func TestReservedVariables(t *testing.T) {
 
 func TestUsesForm(t *testing.T) {
 	cases := []struct {
-		name         string
-		action       string
-		expectedForm model.ActionUsesForm
+		action   string
+		expected model.Uses
 	}{
 		{
-			name:         "docker",
-			action:       `action "a" { uses = "docker://alpine" }`,
-			expectedForm: model.DockerImageUsesForm,
+			action:   `action "a" { uses = "docker://alpine" }`,
+			expected: &model.UsesDockerImage{},
 		},
 		{
-			name:         "in-repo",
-			action:       `action "a" { uses = "./actions/foo" }`,
-			expectedForm: model.InRepoUsesForm,
+			action:   `action "a" { uses = "./actions/foo" }`,
+			expected: &model.UsesPath{},
 		},
 		{
-			name:         "cross-repo",
-			action:       `action "a" { uses = "name/owner/path@5678ac" }`,
-			expectedForm: model.CrossRepoUsesForm,
+			action:   `action "a" { uses = "name/owner/path@5678ac" }`,
+			expected: &model.UsesRepository{},
 		},
 		{
-			name:         "cross-repo-no-path",
-			action:       `action "a" { uses = "name/owner@5678ac" }`,
-			expectedForm: model.CrossRepoUsesForm,
+			action:   `action "a" { uses = "name/owner@5678ac" }`,
+			expected: &model.UsesRepository{},
+		},
+		{
+			action:   `action "a" { uses = "" }`,
+			expected: &model.UsesInvalid{},
+		},
+		{
+			action:   `action "a" { uses = "foo@" }`,
+			expected: &model.UsesInvalid{},
+		},
+		{
+			action:   `action "a" { uses = "foo" }`,
+			expected: &model.UsesInvalid{},
 		},
 	}
 
 	for _, tc := range cases {
-		t.Run(tc.name, func(tt *testing.T) {
-			workflow, err := Parse(strings.NewReader(tc.action))
-			require.NoError(tt, err)
-			assert.Equalf(tt, tc.expectedForm, workflow.Actions[0].Uses.Form(), "%+v", workflow.Actions[0].Uses)
-		})
+		workflow, err := Parse(strings.NewReader(tc.action), WithSuppressErrors())
+		require.NoError(t, err)
+		assert.IsType(t, tc.expected, workflow.Actions[0].Uses)
 	}
+}
+
+func TestMultilineErrors(t *testing.T) {
+	_, err := parseString(`
+		workflow "a" {
+			on = 17        # three errors
+			resolves = "b"
+		}
+		action "b" {
+			uses="c"       # one error
+		}
+	`)
+	require.Error(t, err)
+	expect := "unable to parse and validate\n" +
+		"  Line 2: Workflow `a' must have an `on' attribute\n" +
+		"  Line 3: Expected string, got number\n" +
+		"  Line 3: Invalid format for `on' in workflow `a', expected string\n" +
+		"  Line 7: The `uses' attribute must be a path, a Docker image, or owner/repo@ref"
+	assert.Equal(t, expect, err.Error())
+
+	require.IsType(t, &Error{}, err)
+	pe := err.(*Error)
+	assert.Len(t, pe.Errors, 4)
 }
 
 /********** helpers **********/
@@ -681,7 +718,7 @@ func assertParseError(t *testing.T, err error, nactions int, nflows int, workflo
 	require.Error(t, err)
 	assert.Nil(t, workflow)
 
-	if pe, ok := err.(*ParserError); ok {
+	if pe, ok := err.(*Error); ok {
 		assert.Equal(t, nactions, len(pe.Actions), "actions")
 		assert.Equal(t, nflows, len(pe.Workflows), "workflows")
 
@@ -707,7 +744,7 @@ func assertSyntaxError(t *testing.T, err error, workflow *model.Configuration, e
 	assert.Error(t, err)
 	require.Nil(t, workflow)
 
-	if pe, ok := err.(*ParserError); ok {
+	if pe, ok := err.(*Error); ok {
 		assert.Nil(t, pe.Actions)
 		assert.Nil(t, pe.Workflows)
 		require.Len(t, pe.Errors, 1, "syntax errors should yield only one error")
@@ -724,8 +761,8 @@ func parseString(workflowFile string, options ...OptionFunc) (*model.Configurati
 	return Parse(strings.NewReader(workflowFile), options...)
 }
 
-func extractParserError(t *testing.T, err error) *ParserError {
-	if pe, ok := err.(*ParserError); ok {
+func extractParserError(t *testing.T, err error) *Error {
+	if pe, ok := err.(*Error); ok {
 		return pe
 	}
 

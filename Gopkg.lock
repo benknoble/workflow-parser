@@ -10,7 +10,7 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:12247a2e99a060cc692f6680e5272c8adf0b8f572e6bce0d7095e624c958a240"
+  digest = "1:7d1d1acf71d2b370c82a6336f4ad7c231a062dbdd8951e7270dd6f1740597b80"
   name = "github.com/hashicorp/hcl"
   packages = [
     ".",
@@ -24,8 +24,8 @@
     "json/token",
   ]
   pruneopts = "UT"
-  revision = "d54c7b46069bed3307585a0141d18f7bd04be49f"
-  source = "github.com/anthonysterling/hcl"
+  revision = "481ba8d00bf398f51b211239a0c506e1c0654feb"
+  source = "github.com/actions/hcl"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
