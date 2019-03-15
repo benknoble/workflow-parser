@@ -322,10 +322,10 @@ func TestMultilineErrors(t *testing.T) {
 	_, err := fixture(t, "invalid/bad-on.workflow")
 	require.Error(t, err)
 	expect := "unable to parse and validate\n" +
-		"  Line 2: Workflow `foo' has unknown `on' value `hsup'\n" +
-		"  Line 4: `on' redefined in workflow `foo'\n" +
-		"  Line 4: Expected string, got number\n" +
-		"  Line 4: Invalid format for `on' in workflow `foo', expected string"
+		"  Line 5: Workflow `foo' has unknown `on' value `hsup'\n" +
+		"  Line 7: `on' redefined in workflow `foo'\n" +
+		"  Line 7: Expected string, got number\n" +
+		"  Line 7: Invalid format for `on' in workflow `foo', expected string"
 	assert.Equal(t, expect, err.Error())
 
 	require.IsType(t, &Error{}, err)

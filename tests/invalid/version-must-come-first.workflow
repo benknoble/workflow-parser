@@ -1,3 +1,5 @@
+# Invalid file, because version declarations must come first.
+
 action "a" { uses="./foo" }
 version=0
 
@@ -6,6 +8,6 @@ version=0
 #   "numActions":   1,
 #   "numWorkflows": 0,
 #   "errors":[
-#     { "line": 2, "severity": "ERROR", "message": "`version` must be the first declaration" }
+#     { "line": 4, "severity": "ERROR", "message": "`version` must be the first declaration" }
 #   ]
 # }

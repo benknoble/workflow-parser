@@ -1,4 +1,4 @@
-# Invalid file, because there are circular dependencies
+# Invalid file, because there are circular dependencies.
 
 // simple cycle: a -> b -> a
 action "a" { uses="./x" needs=["b", "g"] }

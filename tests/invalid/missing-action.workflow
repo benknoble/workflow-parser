@@ -1,3 +1,5 @@
+# Invalid file, because action `b` is undefined.
+
 workflow "foo" {
 	on = "push"
 	resolves = ["a", "b"]
@@ -12,6 +14,6 @@ action "a" {
 #   "numActions":   1,
 #   "numWorkflows": 1,
 #   "errors":[
-#     { "line": 3, "severity": "ERROR", "message": "workflow `foo' resolves unknown action `b'" }
+#     { "line": 5, "severity": "ERROR", "message": "workflow `foo' resolves unknown action `b'" }
 #   ]
 # }

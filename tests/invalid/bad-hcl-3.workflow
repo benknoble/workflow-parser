@@ -1,4 +1,4 @@
-# Invalid file, because a `}` is missing
+# Invalid file, because a `}` is missing.
 
 action "foo" {
 

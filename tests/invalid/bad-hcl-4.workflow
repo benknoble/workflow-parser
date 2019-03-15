@@ -1,4 +1,4 @@
-# Invalid file, because a string is not terminated
+# Invalid file, because a string is not terminated.
 
 action "foo" { uses=" }
 

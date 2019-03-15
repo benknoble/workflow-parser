@@ -1,4 +1,4 @@
-# Invalid file, because it has an illegal character
+# Invalid file, because it has an illegal character.
 
 this is definitely not valid HCL!
 

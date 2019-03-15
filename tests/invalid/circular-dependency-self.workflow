@@ -1,4 +1,4 @@
-# Invalid file, because `a` depends on itself
+# Invalid file, because `a` depends on itself.
 
 action "a" {
 	uses="./x"

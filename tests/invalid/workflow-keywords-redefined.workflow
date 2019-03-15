@@ -1,3 +1,5 @@
+# Invalid file, because `on` and `resolves` are redefined.
+
 workflow "a" {
 	on="push"
 	on="push"
@@ -15,9 +17,9 @@ workflow "b" {
 #   "numActions":   0,
 #   "numWorkflows": 2,
 #   "errors":[
-#     { "line": 3, "severity": "ERROR", "message": "`on' redefined in workflow `a'" },
-#     { "line": 4, "severity": "ERROR", "message": "workflow `a' resolves unknown action `c'" },
-#     { "line": 10, "severity": "ERROR", "message": "`resolves' redefined in workflow `b'" },
-#     { "line": 10, "severity": "ERROR", "message": "workflow `b' resolves unknown action `c'" }
+#     { "line": 5, "severity": "ERROR", "message": "`on' redefined in workflow `a'" },
+#     { "line": 6, "severity": "ERROR", "message": "workflow `a' resolves unknown action `c'" },
+#     { "line": 12, "severity": "ERROR", "message": "`resolves' redefined in workflow `b'" },
+#     { "line": 12, "severity": "ERROR", "message": "workflow `b' resolves unknown action `c'" }
 #   ]
 # }

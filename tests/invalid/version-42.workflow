@@ -1,3 +1,5 @@
+# Invalid file, because version 42 doesn't exist.
+
 "version"=42
 action "a" { uses="./foo" }
 
@@ -6,6 +8,6 @@ action "a" { uses="./foo" }
 #   "numActions":   1,
 #   "numWorkflows": 0,
 #   "errors":[
-#     { "line": 1, "severity": "ERROR", "message": "`version = 42` is not supported" }
+#     { "line": 3, "severity": "ERROR", "message": "`version = 42` is not supported" }
 #   ]
 # }

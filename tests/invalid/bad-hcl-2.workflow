@@ -1,4 +1,4 @@
-# Invalid file, because there is a missing block
+# Invalid file, because there is a missing block.
 
 action "foo"
 

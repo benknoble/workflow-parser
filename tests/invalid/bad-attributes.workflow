@@ -1,4 +1,4 @@
-# Invalid file, because `bananas` is not a valid attribute.
+# Invalid file, because `bananas` and `bar` are not a valid attributes.
 
 workflow "a" {
 	on="push"
