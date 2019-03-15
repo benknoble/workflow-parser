@@ -1,6 +1,10 @@
 package parser
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -17,21 +21,8 @@ func TestParseEmptyConfig(t *testing.T) {
 }
 
 func TestSeveritySuppression(t *testing.T) {
-	warn := `
-	  action "a" {
-		  uses = "./x"
-		  bananas = "are the best"
-	  }`
-	errs := `action "a" {}`
-
-	workflow, err := parseString(warn)
-	assertParseError(t, err, 1, 0, workflow, "line 4: unknown action attribute `bananas'")
-	workflow, err = parseString(warn, WithSuppressWarnings())
-	assertParseSuccess(t, err, 1, 0, workflow)
-	workflow, err = parseString(errs)
-	assertParseError(t, err, 1, 0, workflow, "line 1: action `a' must have a `uses' attribute")
-	workflow, err = parseString(errs, WithSuppressErrors())
-	assertParseSuccess(t, err, 1, 0, workflow)
+	fixture(t, "invalid/bad-attribute.workflow")
+	fixture(t, "invalid/no-uses.workflow")
 }
 
 func TestActionsAndAttributes(t *testing.T) {
@@ -768,4 +759,97 @@ func extractParserError(t *testing.T, err error) *Error {
 
 	require.Fail(t, "expected parser error, but got %T", err)
 	return nil
+}
+
+type parseErrorExpectation struct {
+	Line     int
+	Severity string
+	Message  string
+}
+
+type parseExpectation struct {
+	Result       string
+	NumActions   int
+	NumWorkflows int
+	Errors       []parseErrorExpectation
+}
+
+var assertStartRegexp = regexp.MustCompile(`^#\s*ASSERT\s*{\s*$`)
+var assertEndRegexp = regexp.MustCompile(`^#\s*}`)
+
+func parseAssertions(t *testing.T, str string) []parseExpectation {
+	var current string
+	var ret []parseExpectation
+	for _, line := range strings.Split(str, "\n") {
+		if !strings.HasPrefix(line, "#") {
+			continue
+		}
+		if current == "" {
+			if assertStartRegexp.MatchString(line) {
+				current = "{"
+			}
+		} else {
+			current += line[1:]
+			if assertEndRegexp.MatchString(line) {
+				t.Log(current)
+				var pe parseExpectation
+				err := json.Unmarshal([]byte(current), &pe)
+				t.Log(pe)
+				require.NoError(t, err)
+				ret = append(ret, pe)
+				current = ""
+			}
+		}
+	}
+
+	return ret
+}
+
+func fixture(t *testing.T, filename string) *model.Configuration {
+	t.Logf("Fixture: %s", filename)
+	bytes, err := ioutil.ReadFile("../tests/" + filename)
+	require.NoError(t, err)
+
+	type suppressionLevel struct {
+		ignore string
+		args   []OptionFunc
+	}
+	levels := []suppressionLevel{
+		{"WARN|ERROR", []OptionFunc{WithSuppressErrors()}},
+		{"WARN", []OptionFunc{WithSuppressWarnings()}},
+		// "none" should be last, so fixture() can return the non-suppressed workflow
+		{"none", nil},
+	}
+
+	str := string(bytes)
+	assertions := parseAssertions(t, str)
+	assert.True(t, len(assertions) > 0)
+
+	var workflow *model.Configuration
+	for _, level := range levels {
+		t.Logf("suppressing %s", level.ignore)
+		workflow, err = parseString(str, level.args...)
+		for _, a := range assertions {
+			switch a.Result {
+			case "failure":
+				messages := make([]string, 0, len(a.Errors))
+				for _, pe := range a.Errors {
+					if !strings.Contains(level.ignore, pe.Severity) {
+						messages = append(messages, fmt.Sprintf("line %d: %s", pe.Line, pe.Message))
+					}
+				}
+				t.Log(messages)
+				if len(messages) > 0 {
+					assertParseError(t, err, a.NumActions, a.NumWorkflows, workflow, messages...)
+				} else {
+					assertParseSuccess(t, err, a.NumActions, a.NumWorkflows, workflow)
+				}
+			case "success":
+				assertParseSuccess(t, err, a.NumActions, a.NumWorkflows, workflow)
+			default:
+				t.Errorf("Do not know how to assert a parse result of type `%s`", a.Result)
+			}
+		}
+	}
+	return workflow
 }
