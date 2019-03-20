@@ -321,8 +321,11 @@ func (p *Parser) literalToStringArray(node ast.Node, promoteScalars bool) ([]str
 	if ok {
 		if promoteScalars && literal.Token.Type == token.STRING {
 			return []string{literal.Token.Value().(string)}, true
+		} else if promoteScalars {
+			p.addError(node, "Expected list or string, got %s", typename(node))
+		} else {
+			p.addError(node, "Expected list, got %s", typename(node))
 		}
-		p.addError(node, "Expected list or string, got %s", typename(node))
 		return nil, false
 	}
 
