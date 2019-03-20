@@ -60,6 +60,13 @@ func TestUnscopedVariableNames(t *testing.T) {
 	assert.Equal(t, []string{"${value}"}, workflow.Actions[0].Runs.Split())
 }
 
+func TestScheduleTypes(t *testing.T) {
+	workflow, _ := fixture(t, "valid/schedule-types.workflow")
+	for _, w := range workflow.Workflows {
+		assert.IsType(t, &model.OnSchedule{}, w.On)
+	}
+}
+
 func TestActionCollision(t *testing.T) {
 	fixture(t, "invalid/action-collision.workflow")
 }
@@ -82,20 +89,23 @@ func TestCircularDependencyOther(t *testing.T) {
 
 func TestFlowMapping(t *testing.T) {
 	workflow, _ := fixture(t, "valid/flow-mapping.workflow")
-	assert.Equal(t, "push", workflow.Workflows[0].On)
+	assert.Equal(t, "push", workflow.Workflows[0].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[0].On)
 	assert.ElementsMatch(t, []string{"a", "b"}, workflow.Workflows[0].Resolves)
 }
 
 func TestFlowOneResolve(t *testing.T) {
 	workflow, _ := fixture(t, "valid/one-resolve.workflow")
-	assert.Equal(t, "push", workflow.Workflows[0].On)
+	assert.Equal(t, "push", workflow.Workflows[0].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[0].On)
 	assert.Len(t, workflow.Workflows[0].Resolves[0], 1)
 	assert.Equal(t, "a", workflow.Workflows[0].Resolves[0])
 }
 
 func TestFlowNoResolves(t *testing.T) {
 	workflow, _ := fixture(t, "valid/no-resolves.workflow")
-	assert.Equal(t, "push", workflow.Workflows[0].On)
+	assert.Equal(t, "push", workflow.Workflows[0].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[0].On)
 	assert.Len(t, workflow.Workflows[0].Resolves, 0)
 	assert.Empty(t, workflow.Workflows[0].Resolves)
 }
@@ -196,12 +206,14 @@ func TestUsesCustomActionsShortPath(t *testing.T) {
 func TestTwoFlows(t *testing.T) {
 	workflow, _ := fixture(t, "valid/two-flows.workflow")
 
-	assert.Equal(t, "push", workflow.Workflows[0].On)
+	assert.Equal(t, "push", workflow.Workflows[0].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[0].On)
 	assert.Len(t, workflow.Workflows[0].Resolves[0], 1)
 	assert.Equal(t, []string{"a"}, workflow.Workflows[0].Resolves)
 	assert.Len(t, workflow.GetWorkflows("push"), 1)
 
-	assert.Equal(t, "pull_request", workflow.Workflows[1].On)
+	assert.Equal(t, "pull_request", workflow.Workflows[1].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[1].On)
 	assert.Len(t, workflow.Workflows[1].Resolves[0], 1)
 	assert.Equal(t, []string{"a", "b"}, workflow.Workflows[1].Resolves)
 	assert.Len(t, workflow.GetWorkflows("pull_request"), 1)
@@ -221,6 +233,10 @@ func TestNeeds(t *testing.T) {
 
 func TestFlowMissingOn(t *testing.T) {
 	fixture(t, "invalid/missing-on.workflow")
+}
+
+func TestFlowMissingResolves(t *testing.T) {
+	fixture(t, "invalid/missing-resolves.workflow")
 }
 
 func TestFlowRejectsMalformedSchedule(t *testing.T) {
