@@ -22,7 +22,7 @@ action "c" {
 #   "numWorkflows": 0,
 #   "errors":[
 #     { "line": 6, "severity": "ERROR", "message": "action `a' needs nonexistent action `z'" },
-#     { "line": 11, "severity": "ERROR", "message": "expected list, got number" },
+#     { "line": 11, "severity": "ERROR", "message": "expected list or string, got number" },
 #     { "line": 16, "severity": "ERROR", "message": "expected list, got object" }
 #   ]
 # }
