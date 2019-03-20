@@ -622,7 +622,7 @@ func (p *Parser) parseUses(action *model.Action, node ast.Node) {
 	}
 }
 
-// parseUses sets the action.Runs or action.Args value based on the
+// parseCommand sets the action.Runs or action.Args value based on the
 // contents of the AST node.  This function enforces formatting
 // requirements on the value.
 func (p *Parser) parseCommand(action *model.Action, cmd model.Command, name string, node ast.Node, allowBlank bool) model.Command {
