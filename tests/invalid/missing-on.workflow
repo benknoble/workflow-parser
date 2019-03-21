@@ -19,8 +19,7 @@ action "a" {
 #   "numWorkflows": 2,
 #   "errors":[
 #     { "line": 3, "severity": "ERROR", "message": "workflow `foo' must have an `on' attribute" },
-#     { "line": 7, "severity": "ERROR", "message": "workflow `bar' must have an `on' attribute" },
 #     { "line": 8, "severity": "ERROR", "message": "expected string, got number" },
-#     { "line": 8, "severity": "ERROR", "message": "invalid format for `on' in workflow `bar'" }
+#     { "line": 8, "severity": "ERROR", "message": "invalid format for `on' in workflow `bar', expected string" }
 #   ]
 # }

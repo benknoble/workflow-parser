@@ -23,7 +23,7 @@ type Action struct {
 // Workflow represents a single "workflow" stanza in a .workflow file.
 type Workflow struct {
 	Identifier string
-	On         string
+	On         On
 	Resolves   []string
 }
 
@@ -56,7 +56,7 @@ func (c *Configuration) GetWorkflow(id string) *Workflow {
 func (c *Configuration) GetWorkflows(eventType string) []*Workflow {
 	var ret []*Workflow
 	for _, workflow := range c.Workflows {
-		if strings.EqualFold(workflow.On, eventType) {
+		if strings.EqualFold(workflow.On.String(), eventType) {
 			ret = append(ret, workflow)
 		}
 	}
