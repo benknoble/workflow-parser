@@ -321,8 +321,11 @@ func (p *Parser) literalToStringArray(node ast.Node, promoteScalars bool) ([]str
 	if ok {
 		if promoteScalars && literal.Token.Type == token.STRING {
 			return []string{literal.Token.Value().(string)}, true
+		} else if promoteScalars {
+			p.addError(node, "Expected list or string, got %s", typename(node))
+		} else {
+			p.addError(node, "Expected list, got %s", typename(node))
 		}
-		p.addError(node, "Expected list, got %s", typename(node))
 		return nil, false
 	}
 
@@ -622,7 +625,7 @@ func (p *Parser) parseUses(action *model.Action, node ast.Node) {
 	}
 }
 
-// parseUses sets the action.Runs or action.Args value based on the
+// parseCommand sets the action.Runs or action.Args value based on the
 // contents of the AST node.  This function enforces formatting
 // requirements on the value.
 func (p *Parser) parseCommand(action *model.Action, cmd model.Command, name string, node ast.Node, allowBlank bool) model.Command {

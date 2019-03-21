@@ -25,7 +25,7 @@ action "b" {
 #   "numActions":   2,
 #   "numWorkflows": 2,
 #   "errors":[
-#     { "line": 6, "severity": "ERROR", "message": "expected list, got number" },
+#     { "line": 6, "severity": "ERROR", "message": "expected list or string, got number" },
 #     { "line": 6, "severity": "ERROR", "message": "invalid format for `resolves' in workflow `foo', expected list of strings" },
 #     { "line": 12, "severity": "ERROR", "message": "`resolves' redefined in workflow `bar'" }
 #   ]
