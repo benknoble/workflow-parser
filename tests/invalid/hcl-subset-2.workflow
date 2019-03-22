@@ -12,7 +12,7 @@ action "f" { env={"FOO"="BAR"} }
 #   "numWorkflows": 0,
 #   "errors":[
 #     { "line": 4, "severity": "ERROR", "message": "expected identifier, got string" },
-#     { "line": 5, "severity": "ERROR", "message": "expected identifier, got string" }
+#     { "line": 5, "severity": "ERROR", "message": "expected identifier, got string" },
 #     { "line": 6, "severity": "ERROR", "message": "expected identifier, got string" }
 #   ]
 # }
