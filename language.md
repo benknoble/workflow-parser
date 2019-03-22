@@ -153,7 +153,7 @@ env_kvp : 'env' '=' '{' env_var* '}' ;
 
 secrets_kvp : 'secrets' '=' ident_array ;
 
-env_var : IDENTIFIER '=' str ;
+env_var : IDENTIFIER '=' str ','? ;
 
 ident_array : '[' ((QUOTED_IDENTIFIER ',')* QUOTED_IDENTIFIER ','?)? ']';
 
