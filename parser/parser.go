@@ -198,15 +198,10 @@ func (p *Parser) checkEnvironmentVariable(key string, node ast.Node) {
 func (p *Parser) checkFlows() {
 	actionmap := makeActionMap(p.actions)
 	for _, f := range p.workflows {
-		// make sure there's an `on` attribute
-		if f.On == "" {
+		// make sure on attribute is present
+		if f.On == nil {
 			p.addError(p.posMap[f], "Workflow `%s' must have an `on' attribute", f.Identifier)
-			// continue, checking other workflows
-		} else if !isAllowedEventType(f.On) {
-			p.addError(p.posMap[&f.On], "Workflow `%s' has unknown `on' value `%s'", f.Identifier, f.On)
-			// continue, checking other workflows
 		}
-
 		// make sure that the actions that are resolved all exist
 		for _, actionID := range f.Resolves {
 			_, ok := actionmap[actionID]
@@ -512,7 +507,7 @@ func (p *Parser) parseBlockPreamble(item *ast.ObjectItem, nodeType string) (stri
 	node := item.Val
 	obj, ok := node.(*ast.ObjectType)
 	if !ok {
-		p.addError(node, "Each %s must have an { ...  } block", nodeType)
+		p.addError(node, "Each %s must have an { ... } block", nodeType)
 		return "", nil
 	}
 
@@ -576,6 +571,34 @@ func (p *Parser) parseActionAttribute(name string, action *model.Action, val ast
 	default:
 		p.addWarning(val, "Unknown action attribute `%s'", name)
 	}
+}
+
+// parseOn sets the workflow.On value based on the contents of the AST
+// node.  This function enforces formatting requirements on the value.
+func (p *Parser) parseOn(workflow *model.Workflow, node ast.Node) {
+	if workflow.On != nil {
+		p.addWarning(node, "`on' redefined in workflow `%s'", workflow.Identifier)
+		// continue, allowing the redefinition
+	}
+
+	var strVal string
+	if ok := p.parseRequiredString(&strVal, node, "workflow", "on", workflow.Identifier); !ok {
+		workflow.On = &model.OnInvalid{Raw: strVal}
+		return
+	}
+
+	if IsSchedule(strVal) {
+		workflow.On = &model.OnSchedule{Expression: strVal}
+		return
+	}
+
+	if isAllowedEventType(strVal) {
+		workflow.On = &model.OnEvent{Event: strVal}
+		return
+	}
+
+	p.addError(node, "Workflow `%s' has an invalid `on' attribute `%s' - must be a known event type or schedule expression", workflow.Identifier, strVal)
+	workflow.On = &model.OnInvalid{Raw: strVal}
 }
 
 // parseUses sets the action.Uses value based on the contents of the AST
@@ -678,15 +701,13 @@ func (p *Parser) workflowifyItem(item *ast.ObjectItem) *model.Workflow {
 
 	var ok bool
 	workflow := &model.Workflow{Identifier: id}
+
 	for _, item := range obj.List.Items {
 		name := p.identString(item.Keys[0].Token)
 
 		switch name {
 		case "on":
-			ok = p.parseRequiredString(&workflow.On, item.Val, "workflow", name, id)
-			if ok {
-				p.posMap[&workflow.On] = item
-			}
+			p.parseOn(workflow, item.Val)
 		case "resolves":
 			if workflow.Resolves != nil {
 				p.addWarning(item.Val, "`resolves' redefined in workflow `%s'", id)

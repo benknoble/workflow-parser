@@ -60,6 +60,13 @@ func TestUnscopedVariableNames(t *testing.T) {
 	assert.Equal(t, []string{"${value}"}, workflow.Actions[0].Runs.Split())
 }
 
+func TestScheduleTypes(t *testing.T) {
+	workflow, _ := fixture(t, "valid/schedule-types.workflow")
+	for _, w := range workflow.Workflows {
+		assert.IsType(t, &model.OnSchedule{}, w.On)
+	}
+}
+
 func TestActionCollision(t *testing.T) {
 	fixture(t, "invalid/action-collision.workflow")
 }
@@ -82,20 +89,23 @@ func TestCircularDependencyOther(t *testing.T) {
 
 func TestFlowMapping(t *testing.T) {
 	workflow, _ := fixture(t, "valid/flow-mapping.workflow")
-	assert.Equal(t, "push", workflow.Workflows[0].On)
+	assert.Equal(t, "push", workflow.Workflows[0].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[0].On)
 	assert.ElementsMatch(t, []string{"a", "b"}, workflow.Workflows[0].Resolves)
 }
 
 func TestFlowOneResolve(t *testing.T) {
 	workflow, _ := fixture(t, "valid/one-resolve.workflow")
-	assert.Equal(t, "push", workflow.Workflows[0].On)
+	assert.Equal(t, "push", workflow.Workflows[0].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[0].On)
 	assert.Len(t, workflow.Workflows[0].Resolves[0], 1)
 	assert.Equal(t, "a", workflow.Workflows[0].Resolves[0])
 }
 
 func TestFlowNoResolves(t *testing.T) {
 	workflow, _ := fixture(t, "valid/no-resolves.workflow")
-	assert.Equal(t, "push", workflow.Workflows[0].On)
+	assert.Equal(t, "push", workflow.Workflows[0].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[0].On)
 	assert.Len(t, workflow.Workflows[0].Resolves, 0)
 	assert.Empty(t, workflow.Workflows[0].Resolves)
 }
@@ -196,14 +206,16 @@ func TestUsesCustomActionsShortPath(t *testing.T) {
 func TestTwoFlows(t *testing.T) {
 	workflow, _ := fixture(t, "valid/two-flows.workflow")
 
-	assert.Equal(t, "push", workflow.Workflows[0].On)
+	assert.Equal(t, "push", workflow.Workflows[0].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[0].On)
 	assert.Len(t, workflow.Workflows[0].Resolves[0], 1)
 	assert.Equal(t, []string{"a"}, workflow.Workflows[0].Resolves)
 	assert.Len(t, workflow.GetWorkflows("push"), 1)
 
-	assert.Equal(t, "pull_request", workflow.Workflows[1].On)
+	assert.Equal(t, "pull_request", workflow.Workflows[1].On.String())
+	assert.IsType(t, &model.OnEvent{}, workflow.Workflows[1].On)
 	assert.Len(t, workflow.Workflows[1].Resolves[0], 1)
-	assert.Equal(t, []string{"a","b"}, workflow.Workflows[1].Resolves)
+	assert.Equal(t, []string{"a", "b"}, workflow.Workflows[1].Resolves)
 	assert.Len(t, workflow.GetWorkflows("pull_request"), 1)
 
 	assert.Len(t, workflow.GetWorkflows("blah"), 0)
@@ -223,10 +235,24 @@ func TestFlowMissingOn(t *testing.T) {
 	fixture(t, "invalid/missing-on.workflow")
 }
 
+func TestFlowMissingResolves(t *testing.T) {
+	fixture(t, "invalid/missing-resolves.workflow")
+}
+
+func TestFlowRejectsMalformedSchedule(t *testing.T) {
+	workflow, err := parseString(`workflow "foo" { on = "schedule(" resolves = "a" } action "a" { uses="./x" }`)
+	assertParseError(t, err, 1, 1, workflow,
+		"workflow `foo' has an invalid `on' attribute `schedule(' - must be a known event type or schedule expression",
+	)
+}
+
+func TestFlowAcceptsValidSchedule(t *testing.T) {
+	workflow, err := parseString(`workflow "foo" { on = "schedule(@daily)" resolves = "a" } action "a" { uses="./x" }`)
+	assertParseSuccess(t, err, 1, 1, workflow)
+}
+
 func TestFlowOnUnexpectedValue(t *testing.T) {
-	_, err := fixture(t, "invalid/bad-on.workflow")
-	pe := extractParserError(t, err)
-	assert.Equal(t, "hsup", pe.Workflows[0].On)
+	fixture(t, "invalid/bad-on.workflow")
 }
 
 func TestFlowResolvesTypeError(t *testing.T) {
@@ -322,7 +348,7 @@ func TestMultilineErrors(t *testing.T) {
 	_, err := fixture(t, "invalid/bad-on.workflow")
 	require.Error(t, err)
 	expect := "unable to parse and validate\n" +
-		"  Line 5: Workflow `foo' has unknown `on' value `hsup'\n" +
+		"  Line 5: Workflow `foo' has an invalid `on' attribute `hsup' - must be a known event type or schedule expression\n" +
 		"  Line 7: `on' redefined in workflow `foo'\n" +
 		"  Line 7: Expected string, got number\n" +
 		"  Line 7: Invalid format for `on' in workflow `foo', expected string"

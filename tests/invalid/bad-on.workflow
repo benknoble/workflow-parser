@@ -16,7 +16,7 @@ action "a" {
 #   "numActions":   1,
 #   "numWorkflows": 1,
 #   "errors":[
-#     { "line": 5, "severity": "ERROR", "message": "workflow `foo' has unknown `on' value `hsup'" },
+#     { "line": 5, "severity": "ERROR", "message": "workflow `foo' has an invalid `on' attribute `hsup' - must be a known event type or schedule expression" },
 #     { "line": 7, "severity": "ERROR", "message": "`on' redefined in workflow `foo'" },
 #     { "line": 7, "severity": "ERROR", "message": "expected string, got number" },
 #     { "line": 7, "severity": "ERROR", "message": "invalid format for `on' in workflow `foo', expected string" }
