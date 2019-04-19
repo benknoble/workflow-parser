@@ -408,7 +408,9 @@ func (p *Parser) parseRoot(node ast.Node) {
 func (p *Parser) parseBlock(item *ast.ObjectItem, identifiers map[string]bool) {
 	if len(item.Keys) != 2 {
 		p.addError(item, "Invalid toplevel declaration")
-		return
+		if len(item.Keys) < 2 {
+			return
+		}
 	}
 
 	cmd := p.identString(item.Keys[0].Token)
@@ -464,13 +466,18 @@ func (p *Parser) parseVersion(idx int, item *ast.ObjectItem) {
 
 // parseIdentifier parses the double-quoted identifier (name) for a
 // "workflow" or "action" block.
-func (p *Parser) parseIdentifier(key *ast.ObjectKey) string {
+func (p *Parser) parseIdentifier(key *ast.ObjectKey) (string, bool) {
 	id := key.Token.Text
-	if len(id) < 3 || id[0] != '"' || id[len(id)-1] != '"' {
+	if len(id) < 2 || id[0] != '"' || id[len(id)-1] != '"' {
 		p.addError(key, "Invalid format for identifier `%s'", id)
-		return ""
+		return "", false
 	}
-	return id[1 : len(id)-1]
+
+	ret := id[1 : len(id)-1]
+	if ret == "" {
+		p.addError(key, "Invalid format for identifier `%s'", id)
+	}
+	return ret, true
 }
 
 // parseRequiredString parses a string value, setting its value into the
@@ -499,8 +506,8 @@ func (p *Parser) parseRequiredString(value *string, val ast.Node, nodeType, name
 // parseBlockPreamble parses the beginning of a "workflow" or "action"
 // block.
 func (p *Parser) parseBlockPreamble(item *ast.ObjectItem, nodeType string) (string, *ast.ObjectType) {
-	id := p.parseIdentifier(item.Keys[1])
-	if id == "" {
+	id, ok := p.parseIdentifier(item.Keys[1])
+	if !ok {
 		return "", nil
 	}
 

@@ -281,10 +281,12 @@ func TestNonExistentExplicitDependency(t *testing.T) {
 func TestHCLSubset(t *testing.T) {
 	_, err := fixture(t, "invalid/hcl-subset.workflow")
 	pe := extractParserError(t, err)
-	require.Equal(t, 2, len(pe.Actions))
-	assert.Equal(t, "b", pe.Actions[0].Identifier)
-	assert.Equal(t, "c", pe.Actions[1].Identifier)
-	assert.Equal(t, "./foo", pe.Actions[1].Uses.String())
+	require.Equal(t, 4, len(pe.Actions))
+	assert.Equal(t, "a", pe.Actions[0].Identifier)
+	assert.Equal(t, "",  pe.Actions[1].Identifier)
+	assert.Equal(t, "b", pe.Actions[2].Identifier)
+	assert.Equal(t, "c", pe.Actions[3].Identifier)
+	assert.Equal(t, "./foo", pe.Actions[3].Uses.String())
 }
 
 func TestSecrets(t *testing.T) {
