@@ -465,7 +465,9 @@ func (p *Parser) parseVersion(idx int, item *ast.ObjectItem) {
 }
 
 // parseIdentifier parses the double-quoted identifier (name) for a
-// "workflow" or "action" block.
+// "workflow" or "action" block.  It returns the identifier with the
+// quotes removed, plus a boolean `ok` to indicate if quoting was parsed
+// successfully.
 func (p *Parser) parseIdentifier(key *ast.ObjectKey) (string, bool) {
 	id := key.Token.Text
 	if len(id) < 2 || id[0] != '"' || id[len(id)-1] != '"' {
