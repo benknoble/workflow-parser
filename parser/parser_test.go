@@ -385,7 +385,10 @@ func assertParseError(t *testing.T, err error, nactions int, nflows int, workflo
 		assert.Equal(t, nflows, len(pe.Workflows), "workflows")
 
 		if len(pe.Errors) > 0 {
-			t.Log("Actual errors:  ", pe.Errors)
+			t.Log("Actual errors:")
+			for _, e := range pe.Errors {
+				t.Log("  ", e)
+			}
 		}
 		for _, e := range pe.Errors {
 			assert.NotEqual(t, 0, e.Pos.Line, "error position not set")
@@ -521,7 +524,10 @@ func fixture(t *testing.T, filename string) (*model.Configuration, error) {
 				if suppressed == 0 && level.ignore != "" {
 					continue
 				}
-				t.Log("Expected errors:", messages)
+				t.Log("Expected errors:")
+				for _, msg := range messages {
+					t.Log("  ", msg)
+				}
 				if len(messages) > 0 {
 					assertParseError(t, err, a.NumActions, a.NumWorkflows, workflow, messages...)
 				} else {
