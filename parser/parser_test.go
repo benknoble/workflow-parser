@@ -152,6 +152,13 @@ func TestGetCommandFailure(t *testing.T) {
 	fixture(t, "invalid/bad-commands.workflow")
 }
 
+func TestCommas(t *testing.T) {
+	workflow, _ := fixture(t, "valid/commas.workflow")
+	for _, ac := range workflow.Actions {
+		assert.Equal(t, map[string]string{"FOO":"1", "BAR":"2", "BAZ":"3"}, ac.Env)
+	}
+}
+
 func TestBadEnv(t *testing.T) {
 	_, err := fixture(t, "invalid/bad-env.workflow")
 	pe := extractParserError(t, err)
