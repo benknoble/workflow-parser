@@ -20,7 +20,7 @@ workflow "c" {
 #     { "line": 7, "severity": "ERROR", "message": "workflow `b' must have an `on' attribute" },
 #     { "line": 8, "severity": "ERROR", "message": "workflow `b' resolves unknown action `d'" },
 #     { "line": 11, "severity": "ERROR", "message": "workflow `c' must have an `on' attribute" },
-#     { "line": 12, "severity": "ERROR", "message": "expected list, got number" },
+#     { "line": 12, "severity": "ERROR", "message": "expected list or string, got number" },
 #     { "line": 12, "severity": "ERROR", "message": "invalid format for `resolves' in workflow `c', expected list of strings" }
 #   ]
 # }
