@@ -281,10 +281,12 @@ func TestNonExistentExplicitDependency(t *testing.T) {
 func TestHCLSubset(t *testing.T) {
 	_, err := fixture(t, "invalid/hcl-subset.workflow")
 	pe := extractParserError(t, err)
-	require.Equal(t, 2, len(pe.Actions))
-	assert.Equal(t, "b", pe.Actions[0].Identifier)
-	assert.Equal(t, "c", pe.Actions[1].Identifier)
-	assert.Equal(t, "./foo", pe.Actions[1].Uses.String())
+	require.Equal(t, 4, len(pe.Actions))
+	assert.Equal(t, "a", pe.Actions[0].Identifier)
+	assert.Equal(t, "",  pe.Actions[1].Identifier)
+	assert.Equal(t, "b", pe.Actions[2].Identifier)
+	assert.Equal(t, "c", pe.Actions[3].Identifier)
+	assert.Equal(t, "./foo", pe.Actions[3].Uses.String())
 }
 
 func TestSecrets(t *testing.T) {
@@ -385,7 +387,10 @@ func assertParseError(t *testing.T, err error, nactions int, nflows int, workflo
 		assert.Equal(t, nflows, len(pe.Workflows), "workflows")
 
 		if len(pe.Errors) > 0 {
-			t.Log("Actual errors:  ", pe.Errors)
+			t.Log("Actual errors:")
+			for _, e := range pe.Errors {
+				t.Log("  ", e)
+			}
 		}
 		for _, e := range pe.Errors {
 			assert.NotEqual(t, 0, e.Pos.Line, "error position not set")
@@ -521,7 +526,10 @@ func fixture(t *testing.T, filename string) (*model.Configuration, error) {
 				if suppressed == 0 && level.ignore != "" {
 					continue
 				}
-				t.Log("Expected errors:", messages)
+				t.Log("Expected errors:")
+				for _, msg := range messages {
+					t.Log("  ", msg)
+				}
 				if len(messages) > 0 {
 					assertParseError(t, err, a.NumActions, a.NumWorkflows, workflow, messages...)
 				} else {
