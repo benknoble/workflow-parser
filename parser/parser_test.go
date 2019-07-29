@@ -303,6 +303,21 @@ func TestUnknownAttributes(t *testing.T) {
 	fixture(t, "invalid/bad-attributes.workflow")
 }
 
+func TestHeredocs(t *testing.T) {
+	workflow, _ := fixture(t, "valid/heredocs.workflow")
+
+	assert.Equal(t, []string{"a"}, workflow.Workflows[0].Resolves)
+	assert.Equal(t, &model.UsesPath{"x"}, workflow.Actions[0].Uses)
+	assert.Equal(t, &model.UsesPath{"y"}, workflow.Actions[1].Uses)
+
+	assert.Equal(t, map[string]string{"a":"b", "c":"foo"}, workflow.Actions[0].Env)
+	assert.Equal(t, &model.StringCommand{Value: "cmd; 2; 3"}, workflow.Actions[0].Runs)
+	assert.Equal(t, []string{"cmd;", "2;", "3"}, workflow.Actions[0].Runs.Split())
+
+	assert.Equal(t, &model.StringCommand{Value: "foo bar baz"}, workflow.Actions[1].Args)
+	assert.Equal(t, []string{"foo", "bar", "baz"}, workflow.Actions[1].Args.Split())
+}
+
 func TestReservedVariables(t *testing.T) {
 	_, err := fixture(t, "invalid/reserved-variables.workflow")
 	pe := extractParserError(t, err)
