@@ -365,11 +365,36 @@ func (p *Parser) literalToInt(node ast.Node) (int64, bool) {
 	return val.(int64), true
 }
 
+var whitespaceRe = regexp.MustCompile(`\s+`)
+
 func (p *Parser) literalCast(node ast.Node, t token.Type) interface{} {
 	literal, ok := node.(*ast.LiteralType)
 	if !ok {
 		p.addError(node, "Expected %s, got %s", strings.ToLower(t.String()), typename(node))
 		return nil
+	}
+
+	// Allow heredocs anywhere a string is required.  In practice, the HCL
+	// parser only allows heredocs as the right-hand value for a key in an
+	// object context.  So you can use heredocs as string values (uses, cmd,
+	// args, etc) and as the values inside string maps (env), but not as
+	// values inside string arrays (secrets, the array forms of cmd and
+	// args).
+	//
+	// We compress and trim all whitespace from a heredoc before returning
+	// it.  Any string of whitespace (including tabs and newlines)
+	// compresses to a single space.  So, when specifying a shell string,
+	// expect newlines to come through as IFS argument separators, not as
+	// command separators.  Use semicolons if you need to.
+	if t == token.STRING && literal.Token.Type == token.HEREDOC {
+		str, ok := literal.Token.Value().(string)
+		if !ok {
+			p.addError(node, "Expected %s, got %s", strings.ToLower(t.String()), typename(node))
+			return nil
+		}
+		str = whitespaceRe.ReplaceAllString(str, " ")
+		str = strings.TrimSpace(str)
+		return str
 	}
 
 	if literal.Token.Type != t {
