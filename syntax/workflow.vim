@@ -1,16 +1,18 @@
 " GitHub Actions Workflow (.workflow) syntax file
 " Language:     GitHub Actions Workflow
-" Last change:  2018 Feb 21
-" To use this file, copy it to ~/.vim/syntax/ and add a line like these to
-" your vimrc:
-"   augroup syntax
-"   au BufNewFile,BufReadPost *.workflow so ~/.vim/syntax/workflow.vim
-"   augroup END
-"   au BufNewFile,BufReadPost *.workflow set filetype=workflow
+" Last change:  2019 Aug 12
 
+" Usage:
+"   1. Copy this file to ~/.vim/syntax/workflow.vim
+"   2. Detect workflow filetypes in ~/.vim/syntax/ftdetect/workflow.vim:
+" >
+" au BufNewFile,BufRead *.workflow setfiletype workflow
+" <
+"   3. Enable syntax in your vimrc:
+" >
+" syntax enable
+" <
 
-
-" au BufNewFile,BufReadPost *.workflow so ~/.vim/syntax/workflow.vim
 
 if exists("b:current_syntax")
   finish
